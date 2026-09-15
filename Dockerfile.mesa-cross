@@ -17,13 +17,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       crossbuild-essential-arm64 \
       meson ninja-build pkgconf \
       python3 python3-mako python3-yaml python3-packaging \
-      bison flex x11proto-dev \
+      bison flex x11proto-dev wayland-protocols libwayland-bin \
       glslang-tools spirv-tools \
       git ca-certificates xz-utils cmake \
     && rm -rf /var/lib/apt/lists/*
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
       libdrm-dev:arm64 \
+      libwayland-dev:arm64 libwayland-egl-backend-dev:arm64 \
       libx11-dev:arm64 libx11-xcb-dev:arm64 \
       libxext-dev:arm64 libxfixes-dev:arm64 libxdamage-dev:arm64 \
       libxshmfence-dev:arm64 libxxf86vm-dev:arm64 libxrandr-dev:arm64 \

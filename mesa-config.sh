@@ -45,7 +45,7 @@ MESA_MESON=(
     --buildtype release
     --prefix /usr/local
     --libdir lib/aarch64-linux-gnu
-    -Dplatforms=x11
+    -Dplatforms=x11,wayland
     -Dgallium-drivers=zink
     -Dvulkan-drivers=gfxstream,freedreno,virtio
     -Dfreedreno-kmds=msm,virtio
@@ -118,5 +118,5 @@ mesa_pkg_version() {
     count=$(git -C "$dir" rev-list --count HEAD 2>/dev/null || echo 0)
     sha=$(git -C "$dir" rev-parse --short=8 HEAD 2>/dev/null || echo unknown)
     git -C "$dir" diff --quiet HEAD -- 2>/dev/null || dirty="+dirty$(LC_ALL=C date -u '+%Y%m%d%H%M%S')"
-    echo "${ver}+droidvm.r${count}.g${sha}+deb13gaming1${dirty}"
+    echo "${ver}+droidvm.r${count}.g${sha}+deb13gaming2${dirty}"
 }
