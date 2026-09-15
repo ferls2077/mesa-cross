@@ -40,7 +40,7 @@ on:
       tag:
         description: 'release tag. Empty = the branch name with / replaced by _ . An existing tag is updated in place.'
         required: false
-        default: ''
+        default: 'debian13-gaming'
       prerelease:
         description: 'mark the release as a pre-release'
         type: boolean
@@ -114,8 +114,8 @@ jobs:
           tags: droidvm-mesa-cross:latest
           load: true
           no-cache: ${{ inputs.refresh_env }}
-          cache-from: type=gha,scope=mesa-cross-env
-          cache-to: type=gha,mode=max,scope=mesa-cross-env,ignore-error=true
+          cache-from: type=gha,scope=mesa-cross-env-debian13
+          cache-to: type=gha,mode=max,scope=mesa-cross-env-debian13,ignore-error=true
 
       - name: build
         env:

@@ -1,43 +1,29 @@
-# Cross-build environment for the aarch64 guest mesa, driven from an x86_64 host.
-# Ubuntu resolute base (matches the guest's 26.04 ABI) + arm64 multiarch: the
-# amd64 side carries the host build tools + aarch64 cross toolchain, the arm64
-# side carries the target -dev libraries. Compilation is native x86 (fast),
-# only the *output* is aarch64 -- no emulated compilation. The single exception
-# is llvm-config (see aarch64-llvm-config): mesa insists on config-tool for LLVM,
-# and the config tool that describes the arm64 LLVM is itself an arm64 binary, so
-# that one query runs under qemu-user at meson-setup time.
-ARG BASE=ubuntu:26.04
+# Cross-build environment for the aarch64 DroidVM guest Mesa, driven from an x86_64 host.
+#
+# Debian 13 (trixie) base intentionally matches the target guest ABI. The previous Ubuntu
+# 26.04 build produced libraries that required newer GLIBC / Wayland symbols than Debian 13.
+#
+# Gaming profile:
+#   Xorg/glamor -> Zink -> Turnip -> vDRM -> DRM2KGSL -> Adreno
+#
+# It is X11-only and does not build llvmpipe, so target Wayland and LLVM are unnecessary.
+ARG BASE=debian:13
 FROM ${BASE}
 ENV DEBIAN_FRONTEND=noninteractive
 
-COPY ubuntu.sources /etc/apt/sources.list.d/ubuntu.sources
-RUN rm -f /etc/apt/sources.list; \
-    dpkg --add-architecture arm64 && apt-get update
+RUN dpkg --add-architecture arm64 && apt-get update
 
-# Host (amd64) build tools + the aarch64 cross toolchain + arch-independent data
-# (wayland-protocols, x11proto headers). These stay NATIVE -- never :arm64.
-# qemu-user (dynamic, NOT qemu-user-binfmt): only ever invoked explicitly by
-# aarch64-llvm-config; nothing registers binfmt, so no arm64 binary can run by accident.
-#
-# apt-get update in the SAME RUN as the install: with it in its own layer, editing an install
-# line reuses the cached lists while the archive has moved on, and every versioned .deb URL
-# 404s -- which reads like a mirror outage, not like the cache problem it is.
 RUN apt-get update && apt-get install -y --no-install-recommends \
       crossbuild-essential-arm64 \
       meson ninja-build pkgconf \
       python3 python3-mako python3-yaml python3-packaging \
-      bison flex wayland-protocols libwayland-bin x11proto-dev \
-      glslang-tools \
+      bison flex x11proto-dev \
+      glslang-tools spirv-tools \
       git ca-certificates xz-utils cmake \
-      qemu-user
+    && rm -rf /var/lib/apt/lists/*
 
-# arm64 target -dev libraries. Explicit list (NOT `apt build-dep -a arm64`,
-# which wrongly demands :arm64 of arch:all build-deps like python3-mako and
-# aborts). Covers platforms=x11,wayland + vulkan=gfxstream + gallium=zink +
-# opengl/gbm/glx/egl.
 RUN apt-get update && apt-get install -y --no-install-recommends \
       libdrm-dev:arm64 \
-      libwayland-dev:arm64 libwayland-egl-backend-dev:arm64 \
       libx11-dev:arm64 libx11-xcb-dev:arm64 \
       libxext-dev:arm64 libxfixes-dev:arm64 libxdamage-dev:arm64 \
       libxshmfence-dev:arm64 libxxf86vm-dev:arm64 libxrandr-dev:arm64 \
@@ -45,29 +31,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       libxcb-sync-dev:arm64 libxcb-randr0-dev:arm64 libxcb-shm0-dev:arm64 \
       libxcb-xfixes0-dev:arm64 libxcb-glx0-dev:arm64 libxcb-dri2-0-dev:arm64 \
       libexpat1-dev:arm64 zlib1g-dev:arm64 libvulkan-dev:arm64 \
-      libudev-dev:arm64 \
-      libglvnd-dev:arm64 libzstd-dev:arm64 \
-      libstdc++6:arm64 libedit2:arm64 libz3-4:arm64 libxml2-16:arm64 \
-      libtinfo6:arm64 libcurl4t64:arm64 libffi8:arm64
-
-# The arm64 LLVM (for llvmpipe), extracted rather than installed: llvm-21-dev:arm64 hard-depends
-# on llvm-21-tools:arm64 which hard-depends on python3:arm64, and python3 is not co-installable
-# across architectures -- `apt-get install llvm-21-dev:arm64` therefore CROSSGRADES python3 to
-# arm64, removing the native python3/-mako/-yaml (and, via ubuntu-virt, qemu-user) that the mesa
-# build runs. Extraction sidesteps the resolver: the llvm packages only touch versioned paths
-# (/usr/lib/llvm-21, /usr/lib/aarch64-linux-gnu, /usr/bin/llvm-*-21) that clash with nothing
-# amd64. Their library dependencies ARE apt-installed above -- they are plain multiarch libs,
-# and the cross linker needs them to resolve libLLVM-21's DT_NEEDED.
-RUN apt-get update && cd "$(mktemp -d)" && \
-    apt-get download llvm-21-dev:arm64 llvm-21:arm64 libllvm21:arm64 && \
-    for d in *.deb; do dpkg -x "$d" /; done && \
-    rm -rf "$PWD" && ldconfig
-
-# The one emulated binary in the build (see the header): meson resolves LLVM through
-# this wrapper. Fail the image build, not the mesa build, if it cannot answer.
-COPY aarch64-llvm-config /usr/local/bin/aarch64-llvm-config
-RUN chmod 0755 /usr/local/bin/aarch64-llvm-config && \
-    aarch64-llvm-config --version && \
-    test "$(aarch64-llvm-config --host-target | cut -d- -f1)" = aarch64
+      libudev-dev:arm64 libglvnd-dev:arm64 libzstd-dev:arm64 \
+      libstdc++6:arm64 \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /work

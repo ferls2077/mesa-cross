@@ -39,14 +39,14 @@
 # crash-loops ("Could not initialize GLX", sddm restarting the display forever). llvmpipe is
 # the in-package software fallback that used to come from the distro build. Whether the zink
 # override or the llvmpipe fallback is active on a given boot is decided by the packaged
-# mesa-guest-env service (see package.sh), not at build time. -Dllvm=enabled makes a build
+# mesa-guest-env service (see package.sh), not at build time. -Dllvm=disabled makes a build
 # where LLVM went missing fail at setup instead of quietly dropping llvmpipe.
 MESA_MESON=(
     --buildtype release
     --prefix /usr/local
     --libdir lib/aarch64-linux-gnu
-    -Dplatforms=x11,wayland
-    -Dgallium-drivers=zink,llvmpipe
+    -Dplatforms=x11
+    -Dgallium-drivers=zink
     -Dvulkan-drivers=gfxstream,freedreno,virtio
     -Dfreedreno-kmds=msm,virtio
     -Dllvm=enabled
@@ -118,5 +118,5 @@ mesa_pkg_version() {
     count=$(git -C "$dir" rev-list --count HEAD 2>/dev/null || echo 0)
     sha=$(git -C "$dir" rev-parse --short=8 HEAD 2>/dev/null || echo unknown)
     git -C "$dir" diff --quiet HEAD -- 2>/dev/null || dirty="+dirty$(LC_ALL=C date -u '+%Y%m%d%H%M%S')"
-    echo "${ver}+droidvm.r${count}.g${sha}${dirty}"
+    echo "${ver}+droidvm.r${count}.g${sha}+deb13gaming1${dirty}"
 }
