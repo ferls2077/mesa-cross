@@ -49,7 +49,7 @@ MESA_MESON=(
     -Dgallium-drivers=zink
     -Dvulkan-drivers=gfxstream,freedreno,virtio
     -Dfreedreno-kmds=msm,virtio
-    -Dllvm=enabled
+    -Dllvm=disabled
     -Dopengl=true -Dgbm=enabled -Dglx=dri -Degl=enabled
     -Dglvnd=enabled
     -Dshader-cache-default=true
